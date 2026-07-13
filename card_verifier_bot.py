@@ -1,6 +1,7 @@
-import os  # ← ئەم ماژولە زیاد کردنەوە پێویستە!
-import telegram
-from telegram.ext import Application, CommandHandler
+import os
+import datetime
+from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update
 
 # ✅ پشکنینی ئەلگۆریتمی لون (Luhn)
 def is_luhn_valid(card_number):
@@ -36,8 +37,8 @@ def is_expiry_valid(expiry):
             return False
         if month < 1 or month > 12:
             return False
-        expiry_date = datetime(year, month, 1)
-        return expiry_date > datetime.now()
+        expiry_date = datetime.datetime(year, month, 1)
+        return expiry_date > datetime.datetime.now()
     except:
         return False
 
@@ -45,51 +46,51 @@ def is_expiry_valid(expiry):
 def is_cvv_valid(cvv):
     return len(cvv) == 3 and cvv.isdigit()
 
-# 🤖 فەرمانی سەرەکی بۆ پشکنین
-def verify_card(update, context):
+# 🤖 فەرمانی سەرەکی بۆ پشکنین (گۆڕدراوە بۆ async)
+async def verify_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         data = update.message.text.split()[1:]
         if len(data) != 3:
-            update.message.reply_text("❌ فەرمان هەڵەیە! وەکوو /verify 4111111111111111 05/25 123 بنووسە.")
+            await update.message.reply_text("❌ فەرمان هەڵەیە! وەکوو /verify 4111111111111111 05/25 123 بنووسە.")
             return
         
         card_number, expiry, cvv = data
 
         # پشکنینی ژمارەی کارت
         if not card_number.isdigit() or len(card_number) != 16:
-            update.message.reply_text("❌ ژمارەی کارت هەڵەیە! تەنها ١٦ ژمارە بنووسە.")
+            await update.message.reply_text("❌ ژمارەی کارت هەڵەیە! تەنها ١٦ ژمارە بنووسە.")
             return
         if not is_luhn_valid(card_number):
-            update.message.reply_text("❌ ژمارەی کارت ڕاست نییە (ئەلگۆریتمی لون هەڵە).")
+            await update.message.reply_text("❌ ژمارەی کارت ڕاست نییە (ئەلگۆریتمی لون هەڵە).")
             return
         card_type = get_card_type(card_number)
         if card_type not in ["ڤیزە", "ماستەرکارت"]:
-            update.message.reply_text("❌ تەنها ڤیزە و ماستەرکارت قبوڵ دەکرێت!")
+            await update.message.reply_text("❌ تەنها ڤیزە و ماستەرکارت قبوڵ دەکرێت!")
             return
 
         # پشکنینی مانگی بەسەرچوون
         if not is_expiry_valid(expiry):
-            update.message.reply_text("❌ مانگی بەسەرچوون هەڵەیە! فرمانی دروست: MM/YY (وەکوو 05/25).")
+            await update.message.reply_text("❌ مانگی بەسەرچوون هەڵەیە! فرمانی دروست: MM/YY (وەکوو 05/25).")
             return
 
         # پشکنینی CVV
         if not is_cvv_valid(cvv):
-            update.message.reply_text("❌ CVV هەڵەیە! تەنها ٣ ژمارە بنووسە (وەکوو 123).")
+            await update.message.reply_text("❌ CVV هەڵەیە! تەنها ٣ ژمارە بنووسە (وەکوو 123).")
             return
 
         # سەرکەوتن!
-        update.message.reply_text(
+        await update.message.reply_text(
             f"✅ فرمانەکانی زیرەکن! \n"
             f"جۆر: {card_type}\n"
             f"مانگی بەسەرچوون: {expiry}\n"
             f"CVV: {cvv} (تەنها درێژی پشکنراوە)"
         )
     except Exception as e:
-        update.message.reply_text("❌ هەڵە! فەرمانەکەت وەکوو /verify 4111111111111111 05/25 123 بنووسە.")
+        await update.message.reply_text("❌ هەڵە! فەرمانەکەت وەکوو /verify 4111111111111111 05/25 123 بنووسە.")
 
-# 🚀 فەرمانی دەستپێکردن
-def start(update, context):
-    update.message.reply_text(
+# 🚀 فەرمانی دەستپێکردن (گۆڕدراوە بۆ async)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
         "✨ سڵاو! بۆ پشکنینی کارت، فەرمانی زیرەک بکە:\n"
         "/verify [ژمارەی کارت] [مانگی بەسەرچوون] [CVV]\n\n"
         "📌 نموونە:\n"
@@ -100,9 +101,12 @@ def start(update, context):
 
 # 🔐 چالاککردنی بۆت
 def main():
-    TOKEN = os.getenv('TELEGRAM_TOKEN')  # ← ئێستا os دەتوانرێت!
+    TOKEN = os.getenv('TELEGRAM_TOKEN')
     if not TOKEN:
         print("🚫 هەڵە! توکنی بۆت لە فایلی .env دانەنراوە.")
+        print("1. فایلی .env دروست بکە و توکنەکەت لێرە دابنێ:")
+        print("   TELEGRAM_TOKEN=توکنی_بۆت_تۆ")
+        print("2. پاشان دووبارە بەکاربهێنە.")
         exit(1)
     
     application = Application.builder().token(TOKEN).build()
