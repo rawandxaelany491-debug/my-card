@@ -1,14 +1,7 @@
-# فایلە ئەمنییەکان
 .env
-.env.local
-
-# فایلەکانی پایتھۆن
+allowed_users.json
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# فایلەکانی ڤیرچوەڵ ئینڤایرۆنمێنت
-venv/
-.venv/
-env/
+journal.json
+photo_limits.json
+streaks.json
