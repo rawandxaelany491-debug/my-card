@@ -1,1 +1,1 @@
-worker: python card_verifier_bot.py
+worker: python bot.py
